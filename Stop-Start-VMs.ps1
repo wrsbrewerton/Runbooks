@@ -1,16 +1,11 @@
  <#
     .SYNOPSIS
-        Stops or starts all.ARM based VMs in a given Resource Group that do not contain '01' in the name
+        Stops or starts ARM based VMs in a given Resource Group that do not contain '01' in the name
 
     .DESCRIPTION
-        Stops any VM that does not contain '01' in the 'WR-TeamCity-Agents-RG' resource group at 00:00 weekdays
-        Starts any stopped VMs in the 'WR-TeamCity-Agents-RG' resource group at 08:00 on weekdays
-        This will leave x3 VMs running, x1 for CorInt (wr-cor-tca01-vm), x1 for PayCom (wr-pcom-tca01-vm) and x1 for Web (wr-web-tca01-vm)
-        The remaining x11 VMs will be dealloc'd for x8 hours a day
-        This will result in a monthly saving of approx. £24 per week for each VM (so £264 per week for all x11)
-
-    .PARAMETER Credential
-        Credential used to authenticate via Add-AzureRmAccount - needed for authentication
+        Stops any VM that does not contain '01' in the specified resource group
+        Starts any stopped VMs in the specified resource group
+        Any VM(s) that have '01' in the name will not be affected
 
     .PARAMETER SubscriptionName
         The Azure subscription name
@@ -29,8 +24,8 @@
 
 Param
 (
-    [String][Parameter(Mandatory=$true)]$SubscriptionName = "SomeSubscriptionm",
-    [String][Parameter(Mandatory=$true)]$ResourceGroup = "SomeResourceGroup",
+    [String][Parameter(Mandatory=$true)]$SubscriptionName,
+    [String][Parameter(Mandatory=$true)]$ResourceGroup,
     [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
     [ValidateSet("Stop","Start","stop","start")]
     [String]$Action
@@ -55,7 +50,7 @@ Workflow Start-Stop-VMs
     Write-Output "Getting VMs...."
     $VMs = Get-AzureRmVM -ResourceGroupName $ResourceGroup -Status | Where-Object -Property Name -NotLike "*01*" | Select-Object -Property Name,PowerState
 
-    #$VMs
+    $VMs
 
     Switch -CaseSensitive ($Action)
     {
