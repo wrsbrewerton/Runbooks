@@ -33,7 +33,11 @@ Param
 
 $Action = $Action.ToLower()
 
-Workflow Start-Stop-VMs
+# In workflow scenarios, the thread can sometimes be rehydrated in a different app domain, depending on the workflow runtime
+# This removes the need to authenticate repeatedly inside the workflow loop
+Enable-AzureRmContextAutosave
+
+Workflow Start-Stop-ARM-VMs
 {
     Param
     (
@@ -60,7 +64,7 @@ Workflow Start-Stop-VMs
             {
                 If ($VM.PowerState -ne "Running")
                 {
-                    Connect-AzureRmAccount -ServicePrincipal -Tenant $Conn.TenantID -ApplicationId $Conn.ApplicationID -CertificateThumbprint $Conn.CertificateThumbprint
+                    #Connect-AzureRmAccount -ServicePrincipal -Tenant $Conn.TenantID -ApplicationId $Conn.ApplicationID -CertificateThumbprint $Conn.CertificateThumbprint
                     Write-Output "Starting virtual machine..." $VM.Name
                     Start-AzureRmVM -Name $VM.Name -ResourceGroupName $ResourceGroup
                 }
@@ -72,7 +76,7 @@ Workflow Start-Stop-VMs
             {
                 If($VM.PowerState -ne "VM deallocated")
                 {
-                    Connect-AzureRmAccount -ServicePrincipal -Tenant $Conn.TenantID -ApplicationId $Conn.ApplicationID -CertificateThumbprint $Conn.CertificateThumbprint
+                    #Connect-AzureRmAccount -ServicePrincipal -Tenant $Conn.TenantID -ApplicationId $Conn.ApplicationID -CertificateThumbprint $Conn.CertificateThumbprint
                     Write-Output "Stopping virtual machine..." $VM.Name
                     Stop-AzureRmVM -Name $VM.Name -ResourceGroupName $ResourceGroup -Force
                 }
@@ -81,4 +85,13 @@ Workflow Start-Stop-VMs
     }
 }
 
-Start-Stop-VMs -SubscriptionName $SubscriptionName -ResourceGroup $ResourceGroup -Action $Action
+If (((Get-Date).DayofWeek -eq "Saturday") -or ((Get-Date).DayofWeek -eq "Sunday"))
+{
+    # No action at the weekends
+    Write-Output "Weekend !"
+}
+Else
+{
+    # Call the workflow passing SubscriptionName, ResourceGroupName and the Action to stop/start
+    Start-Stop-ARM-VMs -SubscriptionName $SubscriptionName -ResourceGroup $ResourceGroup -Action $Action
+}
